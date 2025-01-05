@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 "use client"; // Declare this as a client-side component for interactivity
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react"; // React hooks for managing state and side effects
 // import { useSearchParams } from "next/navigation"; // Hook to access query parameters in the URL
