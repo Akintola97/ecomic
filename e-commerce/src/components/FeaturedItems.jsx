@@ -1,6 +1,7 @@
-import { client } from "@/sanity/lib/client"; // Import the Sanity client for fetching data
-import FeaturedItemsModal from "./FeaturedItemsModal"; // Import the client-side modal component
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server"; // Import server session handler
+import { client } from "@/sanity/lib/client";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import FeaturedItemsModal from "./FeaturedItemsModal";
+// Function to fetch banner data from Sanity
 
 // Function to fetch featured products data from the Sanity backend
 const featuredData = async () => {
@@ -15,24 +16,24 @@ const featuredData = async () => {
       price,           // Product price
       inventory        // Product inventory count
     }`;
-  return await client.fetch(query); // Fetch data using the Sanity client and return it
+  const data = client.fetch(query); // Fetch data using the Sanity client and return it
+  return data;
 };
 
-// Server-side component to fetch and render featured items
-export default async function FeaturedItems() {
-  const data = await featuredData(); // Fetch the data on the server side
-  const session = getKindeServerSession(); // Get the Kinde session
-  const isUserAuthenticated = await session?.isAuthenticated(); // Check if the user is authenticated
-  const user = isUserAuthenticated ? await session.getUser() : null; // Get user details if authenticated
-  const userId = user?.id || null; // Extract user ID if available
+export default async function HeroData() {
+  // Fetch user authentication status
+  const { isAuthenticated } = getKindeServerSession();
+  const isUserAuthenticated = await isAuthenticated();
+
+  // Fetch data
+  const data = await featuredData();
 
   return (
     <div className="w-full min-h-[65vh] md:min-h-[60vh] lg:min-h-[70vh] h-auto flex flex-col justify-center">
-      <h1 className="font-bold text-center text-2xl pt-5 pb-10">
-        Featured Items
-      </h1>
-      {/* Pass the userId and data to the client-side modal component */}
-      <FeaturedItemsModal data={data} userId={userId} />
+    <h1 className="font-bold text-center text-2xl pt-5 pb-10">
+      Featured Items
+    </h1>
+    <FeaturedItemsModal data={data} isUserAuthenticated={isUserAuthenticated} />
     </div>
   );
 }

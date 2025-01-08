@@ -1,208 +1,92 @@
-// "use client";
-
-// import MenuIcon from "@mui/icons-material/Menu";
-// import CloseIcon from "@mui/icons-material/Close";
-// import Link from "next/link";
-// import Image from "next/image";
-// import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-// import {
-//   RegisterLink,
-//   LoginLink,
-//   LogoutLink,
-// } from "@kinde-oss/kinde-auth-nextjs/components";
-// import { Button } from "@/components/ui/button";
-// import React, { useState, useRef, useEffect } from "react";
-
-// export default function HamburgerNav({ user, isUserAuthenticated, userId }) {
-//   const [open, setOpen] = useState(false); // Track the state of the hamburger menu
-//   const menuRef = useRef(null); // Reference to the menu container for outside click detection
-
-//   // Open the menu
-//   const handleOpen = () => setOpen(true);
-
-//   // Close the menu
-//   const handleClose = () => setOpen(false);
-
-//   // Close the menu if a click occurs outside the menu container
-//   useEffect(() => {
-//     const handleClickOutside = (event) => {
-//       if (menuRef.current && !menuRef.current.contains(event.target)) {
-//         setOpen(false);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => {
-//       document.removeEventListener("mousedown", handleClickOutside);
-//     };
-//   }, []);
-
-//   // Extract relevant user details
-//   const { id, picture, given_name } = user || {};
-
-//   return (
-//     <>
-//       {/* Hamburger Menu Icon */}
-//       <div className="p-3 cursor-pointer">
-//         <MenuIcon
-//           onClick={handleOpen}
-//           className="h-8 w-8 hover:text-foreground"
-//         />
-//       </div>
-//       {/* Hamburger Menu Container */}
-//       <div
-//         ref={menuRef}
-//         className={`fixed top-0 right-0 h-full md:w-[35%] w-full bg-black transform ${
-//           open ? "translate-x-0" : "translate-x-full"
-//         } transition-transform duration-300 ease-in-out z-40`}
-//       >
-//         {/* Close Button */}
-//         <div className="flex items-center justify-end p-5 font-bold">
-//           <CloseIcon
-//             className="h-8 w-8 cursor-pointer hover:text-destructive"
-//             onClick={handleClose}
-//           />
-//         </div>
-//         {/* Menu Content */}
-//         <div className="w-full h-[50%] flex justify-center items-center">
-//           <ul className="text-white flex flex-col justify-center items-center">
-//             {!isUserAuthenticated ? (
-//               <>
-//                 <li className="p-5">
-//                   <LoginLink onClick={handleClose}>
-//                     <h3 className="transform transition duration-300 hover:text-foreground">
-//                       Login
-//                     </h3>
-//                   </LoginLink>
-//                 </li>
-//                 <li className="p-5">
-//                   <RegisterLink onClick={handleClose}>
-//                     <h3 className="transform transition duration-300 hover:text-foreground">
-//                       Register
-//                     </h3>
-//                   </RegisterLink>
-//                 </li>
-//               </>
-//             ) : (
-//               <>
-//                 <li className="p-5 text-2xl capitalize flex flex-col items-center">
-//                   {/* Ensure `src` is valid */}
-//                   <Image
-//                     key={id}
-//                     src={picture || "/profile.webp"} // Fallback to "/profile.webp" if `picture` is undefined
-//                     height={100}
-//                     width={100}
-//                     alt={`${given_name}'s profile picture`}
-//                     className="rounded-full border-2"
-//                   />
-//                   <h2 className="mt-4 transform transition duration-300">
-//                     Hi, {given_name}
-//                   </h2>
-//                 </li>
-//                 <li className="relative p-5">
-//                   {/* Link to the cart page with userId */}
-//                   <Link onClick={handleClose} href={`/cart?userId=${userId}`}>
-//                     <ShoppingCartIcon />
-//                   </Link>
-//                 </li>
-//                 <li className="p-5">
-//                   {/* Logout button */}
-//                   <LogoutLink onClick={handleClose}>
-//                     <Button variant="destructive">
-//                       <h3 className="dark:text-white">Logout</h3>
-//                     </Button>
-//                   </LogoutLink>
-//                 </li>
-//               </>
-//             )}
-//           </ul>
-//         </div>
-//       </div>
-//     </>
-//   );
-// }
-
-
-
-
-
-
-
+// components/HamburgerNav.jsx
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
-import Link from "next/link";
-import Image from "next/image";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import {
   RegisterLink,
   LoginLink,
   LogoutLink,
 } from "@kinde-oss/kinde-auth-nextjs/components";
+import Image from "next/image";
+import SaveIcon from '@mui/icons-material/Save';
+import Link from "next/link";
+import Badge from '@mui/material/Badge';
 import { Button } from "@/components/ui/button";
+import { SavedItemsContext } from "@/context/SavedItems";  // Import the context
 
-// Import the same CartBadge client component
-import CartBadge from "./CartBadge";
-
-export default function HamburgerNav({
-  user,
-  isUserAuthenticated,
-  userId,
-}) {
+const HamburgerNav = ({ user, isUserAuthenticated }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
+  // Use savedItems from the context
+  const { savedItems } = useContext(SavedItemsContext);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   useEffect(() => {
-    function handleClickOutside(event) {
+    const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setOpen(false);
       }
-    }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const { id, picture, given_name } = user || {};
 
+  /**
+   * Helper function to check if an item is saved (in local storage)
+   * @param {string} itemId - The ID of the item to check
+   * @returns {boolean} - True if the item is saved, else false
+   */
+  const isSaved = (itemId) => savedItems.some((item) => item._id === itemId);
+
+  /**
+   * Helper function to calculate the total quantity of items in the cart
+   * @returns {number} - Total quantity of all items
+   */
+  const getTotalQuantity = () => {
+    return savedItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
   return (
     <>
-      {/* Hamburger Menu Icon */}
       <div className="p-3 cursor-pointer">
-        <MenuIcon
-          onClick={() => setOpen(true)}
-          className="h-8 w-8 hover:text-foreground"
-        />
+        <MenuIcon onClick={handleOpen} className="h-8 w-8 hover:text-green-200" />
       </div>
-
-      {/* Sliding Menu */}
       <div
         ref={menuRef}
-        className={`fixed top-0 right-0 h-full md:w-[35%] w-full bg-black
-          transform ${open ? "translate-x-0" : "translate-x-full"}
-          transition-transform duration-300 ease-in-out z-40`}
+        className={`fixed top-0 right-0 h-full md:w-[35%] w-full bg-black transform ${
+          open ? "translate-x-0" : "translate-x-full"
+        } transition-transform duration-300 ease-in-out z-40`}
       >
-        {/* Close Button */}
         <div className="flex items-center justify-end p-5 font-bold">
           <CloseIcon
             className="h-8 w-8 cursor-pointer hover:text-destructive"
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
           />
         </div>
-
-        {/* Menu Content */}
         <div className="w-full h-[50%] flex justify-center items-center">
           <ul className="text-white flex flex-col justify-center items-center">
             {!isUserAuthenticated ? (
               <>
                 <li className="p-5">
-                  <LoginLink onClick={() => setOpen(false)}>
+                  <LoginLink onClick={handleClose}>
                     <h3 className="transform transition duration-300 hover:text-foreground">
                       Login
                     </h3>
                   </LoginLink>
                 </li>
                 <li className="p-5">
-                  <RegisterLink onClick={() => setOpen(false)}>
+                  <RegisterLink onClick={handleClose}>
                     <h3 className="transform transition duration-300 hover:text-foreground">
                       Register
                     </h3>
@@ -211,13 +95,13 @@ export default function HamburgerNav({
               </>
             ) : (
               <>
-                <li className="p-5 text-2xl capitalize flex flex-col items-center">
+                <li className="relative p-5 text-2xl capitalize flex flex-col items-center">
                   <Image
                     key={id}
-                    src={picture || "/profile.webp"}
+                    src={picture}
                     height={100}
                     width={100}
-                    alt={`${given_name}'s profile`}
+                    alt={`${given_name}'s profile picture`}
                     className="rounded-full border-2"
                   />
                   <h2 className="mt-4 transform transition duration-300">
@@ -225,16 +109,17 @@ export default function HamburgerNav({
                   </h2>
                 </li>
                 <li className="relative p-5">
-                  {/* Link to cart page using the same userId */}
-                  <Link onClick={() => setOpen(false)} href={`/cart?userId=${userId}`}>
-                    {/* Use the same CartBadge component */}
-                    <CartBadge userId={userId} />
+                  <Link href='/cart' onClick={handleClose}>
+                    {/* Display total quantity in badge */}
+                    <Badge badgeContent={getTotalQuantity()} color="secondary">
+                      <ShoppingCartIcon className="dark:text-white text-[5vmin] hover:text-green-400 hover:text-foreground" />
+                    </Badge>
                   </Link>
                 </li>
                 <li className="p-5">
-                  <LogoutLink onClick={() => setOpen(false)}>
+                  <LogoutLink onClick={handleClose}>
                     <Button variant="destructive">
-                      <h3 className="dark:text-white">Logout</h3>
+                      <h3 className="dark:text-white">Logout</h3> 
                     </Button>
                   </LogoutLink>
                 </li>
@@ -245,4 +130,6 @@ export default function HamburgerNav({
       </div>
     </>
   );
-}
+};
+
+export default HamburgerNav;

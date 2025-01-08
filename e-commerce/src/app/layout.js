@@ -2,6 +2,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SavedItemsProvider } from "@/context/SavedItems";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,8 +30,10 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
+          <SavedItemsProvider>
           <Nav />
           {children}
+          </SavedItemsProvider>
         </ThemeProvider>
       </body>
     </html>
