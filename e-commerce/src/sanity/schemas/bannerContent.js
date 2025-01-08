@@ -65,5 +65,21 @@ export const bannerContent = {
                   "The price must be a positive number with up to two decimal places."
                 ),
           },
+          {
+            name: "category",
+            title: "Category",
+            type: "string",
+            options: {
+              list: [
+                { title: "Superhero", value: "superhero" },
+                { title: "Science-Fiction", value: "science-fiction" },
+                { title: "Fantasy", value: "fantasy" },
+                { title: "Horror", value: "horror" },
+                { title: "Mystery/Crime", value: "mystery/crime" },
+              ],
+              layout: "radio", // You can also use 'dropdown' for a dropdown list
+            },
+            validation: (Rule) => Rule.required().error("Category is required"),
+          },
     ]
 }

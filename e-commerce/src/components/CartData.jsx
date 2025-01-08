@@ -518,6 +518,7 @@ export default function CartData() {
           }
         `;
         const docs = await client.fetch(query, { ids: savedIds });
+        console.log(docs)
 
         // Merge fetched docs with quantities from savedItems
         const mergedItems = docs.map((doc) => {
@@ -529,7 +530,7 @@ export default function CartData() {
         });
 
         setCartItems(mergedItems);
-
+console.log(cartItems)
         // Calculate total items
         const totalQty = mergedItems.reduce(
           (sum, item) => sum + item.quantity,
