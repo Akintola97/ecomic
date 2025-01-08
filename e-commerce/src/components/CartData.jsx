@@ -436,7 +436,6 @@
 //   );
 // }
 
-
 // components/CartData.jsx
 "use client";
 
@@ -468,7 +467,8 @@ import { Button } from "./ui/button";
  * - Adds search and filter functionality when cart has more than 6 items
  */
 export default function CartData() {
-  const { savedItems, updateItemQuantity, removeItem } = useContext(SavedItemsContext);
+  const { savedItems, updateItemQuantity, removeItem } =
+    useContext(SavedItemsContext);
   const [cartItems, setCartItems] = useState([]); // Array of fetched docs from Sanity + quantity
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -481,19 +481,6 @@ export default function CartData() {
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   const theme = useTheme(); // Initialize theme
-
-  // Function to get gradient based on theme and selection
-  const getGradient = (isSelected) => {
-    if (theme.palette.mode === "dark") {
-      return isSelected
-        ? "from-teal-400 to-teal-600" // Selected gradient for dark mode
-        : "from-gray-700 to-gray-900"; // Default gradient for dark mode
-    } else {
-      return isSelected
-        ? "from-teal-400 to-teal-600" // Selected gradient for light mode
-        : "from-gray-200 to-gray-300"; // Default gradient for light mode
-    }
-  };
 
   /**
    * Helper function to capitalize strings
@@ -519,15 +506,15 @@ export default function CartData() {
 
         // Fetch docs from Sanity
         const query = `
-          *[_type in ["storeProducts","post","banner","featuredProducts"] && _id in $ids && defined(category) && category != ""]{
+          *[_type in ["storeProducts","banner","featuredProducts"] && _id in $ids && defined(category) && category != ""]{
             _id,
-            title,
-            image,
-            description,
-            price,
-            category, // Ensure category is fetched for filtering
-            inventory, // If you have inventory data
-            // Add other fields as necessary
+        title,
+        category,
+        "current_slug": slug.current,
+        image,
+        description,
+        price,
+        inventory
           }
         `;
         const docs = await client.fetch(query, { ids: savedIds });
@@ -544,7 +531,10 @@ export default function CartData() {
         setCartItems(mergedItems);
 
         // Calculate total items
-        const totalQty = mergedItems.reduce((sum, item) => sum + item.quantity, 0);
+        const totalQty = mergedItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
         setTotalItems(totalQty);
       } catch (error) {
         console.error("Error fetching cart items:", error);
@@ -580,7 +570,9 @@ export default function CartData() {
   // ---------------------------
   const handleCategoryToggle = (category) => {
     if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter((cat) => cat !== category));
+      setSelectedCategories(
+        selectedCategories.filter((cat) => cat !== category)
+      );
     } else {
       setSelectedCategories([...selectedCategories, category]);
     }
@@ -591,7 +583,10 @@ export default function CartData() {
   // 5) Calculate total cost
   // ---------------------------
   const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+    return cartItems.reduce(
+      (sum, item) => sum + (item.price || 0) * item.quantity,
+      0
+    );
   };
 
   // ---------------------------
@@ -613,7 +608,8 @@ export default function CartData() {
       filteredData = filteredData.filter(
         (item) =>
           (item.title && item.title.toLowerCase().includes(lowerCaseFilter)) ||
-          (item.category && item.category.toLowerCase().includes(lowerCaseFilter))
+          (item.category &&
+            item.category.toLowerCase().includes(lowerCaseFilter))
       );
     }
 
@@ -669,7 +665,9 @@ export default function CartData() {
   if (!cartItems.length) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-lg font-semibold text-gray-700">Your cart is empty.</p>
+        <p className="text-lg font-semibold text-gray-700">
+          Your cart is empty.
+        </p>
       </div>
     );
   }
@@ -823,7 +821,8 @@ export default function CartData() {
                   variant="body1"
                   className="text-gray-700 dark:text-gray-300 mt-2"
                 >
-                  Total: ${item.price && (item.price * item.quantity).toFixed(2)}
+                  Total: $
+                  {item.price && (item.price * item.quantity).toFixed(2)}
                 </Typography>
                 <button
                   onClick={() => handleRemoveItem(item._id)}
