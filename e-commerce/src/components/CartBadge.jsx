@@ -1,12 +1,11 @@
 "use client";
-
-import React, { useContext } from "react";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import Badge from "@mui/material/Badge";
-import Link from "next/link";
+import { useContext } from "react";
 import { SavedItemsContext } from "@/context/SavedItems";
+import Link from "next/link";
+import Badge from "@mui/material/Badge";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 
-const CartBadge = () => {
+export default function CartBadge() {
   const { savedItems } = useContext(SavedItemsContext);
 
   const getTotalQuantity = () => {
@@ -20,6 +19,4 @@ const CartBadge = () => {
       </Badge>
     </Link>
   );
-};
-
-export default CartBadge;
+}

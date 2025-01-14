@@ -1,87 +1,58 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
-import Image from "next/image";
+import { SavedItemsContext } from "@/context/SavedItems";
+import { urlFor } from "@/sanity/lib/image";
+import { LoginLink } from "@kinde-oss/kinde-auth-nextjs";
 import {
-  Box,
+  CircularProgress,
   Typography,
-  Grid,
-  TextField,
-  Select,
-  MenuItem,
+  Box,
   FormGroup,
   FormControlLabel,
   Checkbox,
+  TextField,
+  Select,
+  MenuItem,
+  Grid,
   Pagination,
-  CircularProgress,
-} from "@mui/material"; // Material-UI
-import { urlFor } from "@/sanity/lib/image";
+} from "@mui/material";
+import Image from "next/image";
+import { useContext, useState } from "react";
 import StoreItemModal from "./StoreItemModal";
-import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
 
-// --- Local Storage Context (same logic as BannerCarousel) ---
-import { SavedItemsContext } from "@/context/SavedItems";
-
-/**
- * Displays a grid of store items with filtering, searching, sorting, and pagination,
- * and uses local storage (SavedItemsContext) to add/remove from "cart".
- */
 export default function StoreModal({ data, isUserAuthenticated }) {
-  // MUI states for filtering/sorting
   const [filter, setFilter] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [categoryFilters, setCategoryFilters] = useState({});
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Modal control
   const [open, setOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // --- Access local storage cart logic ---
   const { savedItems, toggleSaveItem } = useContext(SavedItemsContext);
 
-  /**
-   * We no longer do fetch calls or track 'cartStatus' in local state,
-   * because local storage is managed by SavedItemsContext.
-   * So there's no need for a "loading" or "checkAllCartStatuses" anymore.
-   */
-
-  // If you still want a brief loading spinner (for data fetch, etc.), you can conditionally handle that here.
-  // For now, we'll assume your "data" is ready.
-
-  // Modal open/close
   const handleOpen = (item) => {
     setSelectedItem(item);
     setOpen(true);
   };
+
   const handleClose = () => {
     setOpen(false);
     setSelectedItem(null);
   };
 
-  /**
-   * Toggle local storage "cart" (saved items) for this product.
-   * If user is not authenticated, do nothing (the UI shows a LoginLink).
-   */
   const handleToggleCart = (item) => {
     if (!isUserAuthenticated) return;
     toggleSaveItem(item);
   };
 
-  // Helper to see if an item is "in cart" from local storage
-  // const isSaved = (item) => savedItems.includes(item._id);
   const isSaved = (itemId) => savedItems.some((item) => item._id === itemId);
 
-  /**
-   * Filtering & Sorting
-   */
   const getFilteredData = () => {
     let filteredData = data;
 
-    // Category filters
     const activeFilters = Object.entries(categoryFilters)
       .filter(([_, isActive]) => isActive)
       .map(([category]) => category);
@@ -91,7 +62,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
       );
     }
 
-    // Search filter
     if (filter) {
       filteredData = filteredData.filter(
         (item) =>
@@ -100,7 +70,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
       );
     }
 
-    // Sorting
     switch (sortOption) {
       case "name":
         filteredData.sort((a, b) => a.title.localeCompare(b.title));
@@ -112,12 +81,10 @@ export default function StoreModal({ data, isUserAuthenticated }) {
         filteredData.sort((a, b) => b.price - a.price);
         break;
       default:
-      // No sorting
     }
     return filteredData;
   };
 
-  // Paginate
   const filteredData = getFilteredData();
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -132,7 +99,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
     }
   };
 
-  // If you want a loading spinner while data is empty:
   if (!data.length) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -150,7 +116,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
           flexDirection: { xs: "column", md: "row" },
         }}
       >
-        {/* Sidebar Filters */}
         <Box sx={{ width: { xs: "100%", md: "25%" }, px: 2 }}>
           <Typography
             variant="h6"
@@ -187,23 +152,21 @@ export default function StoreModal({ data, isUserAuthenticated }) {
             )}
           </FormGroup>
         </Box>
-
-        {/* Main Area */}
         <Box sx={{ width: { xs: "100%", md: "75%" }, p: 2 }}>
-          {/* Search & Sort */}
           <Box
             id="search-container"
             sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
           >
-            {/* Search */}
             <TextField
               fullWidth
               label="Search by title, category..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              sx={{ bgcolor: "background.paper", borderRadius: 1 }}
+              sx={{
+                bgcolor: "background.paper",
+                borderRadius: 1,
+              }}
             />
-            {/* Sort */}
             <Select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
@@ -222,13 +185,10 @@ export default function StoreModal({ data, isUserAuthenticated }) {
               <MenuItem value="priceHighLow">Price: High to Low</MenuItem>
             </Select>
           </Box>
-
-          {/* Products Grid */}
           <Grid container spacing={3}>
-            {paginatedData.map((item) => (
+            {paginatedData?.map((item) => (
               <Grid item key={item._id} xs={12} sm={6} md={4}>
                 <div className="border rounded-md shadow-md overflow-hidden bg-white dark:bg-gray-800 flex flex-col items-center w-full transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-                  {/* Clickable Image to open modal */}
                   <div
                     className="relative w-full h-[200px] bg-gray-200 cursor-pointer"
                     onClick={() => handleOpen(item)}
@@ -241,7 +201,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
                       className="p-2"
                     />
                   </div>
-                  {/* Item details */}
                   <div className="p-4 text-center">
                     <h2 className="font-semibold text-base truncate text-gray-900 dark:text-gray-100">
                       {item.title}
@@ -249,16 +208,10 @@ export default function StoreModal({ data, isUserAuthenticated }) {
                     <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold mt-2">
                       ${item.price.toFixed(2)}
                     </p>
-
-                    {/* Add/Remove button OR prompt login */}
                     {isUserAuthenticated ? (
                       <button
                         onClick={() => handleToggleCart(item)}
-                        className={`relative py-2 px-4 mt-3 text-sm rounded-full font-bold overflow-hidden group ${
-                          isSaved(item._id)
-                            ? "bg-gradient-to-r from-red-500 to-red-700 text-white"
-                            : "bg-gradient-to-r from-blue-500 to-green-500 text-white"
-                        }`}
+                        className={`relative py-2 px-4 mt-3 text-sm rounded-full font-bold overflow-hidden group ${isSaved(item._id) ? "bg-gradient-to-r from-red-500 to-red-700 text-white" : "bg-gradient-to-r from-blue-500 to-green-500 text-white"}:`}
                       >
                         <span className="absolute inset-0 transition-transform duration-300 transform scale-x-0 group-hover:scale-x-100 bg-white opacity-10"></span>
                         <span className="relative z-10">
@@ -279,8 +232,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
               </Grid>
             ))}
           </Grid>
-
-          {/* Pagination */}
           {paginatedData.length > 0 && (
             <Pagination
               count={Math.ceil(filteredData.length / itemsPerPage)}
@@ -320,8 +271,6 @@ export default function StoreModal({ data, isUserAuthenticated }) {
           )}
         </Box>
       </Box>
-
-      {/* Modal for item details */}
       <StoreItemModal
         open={open}
         item={selectedItem}

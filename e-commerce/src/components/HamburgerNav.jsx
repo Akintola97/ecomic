@@ -1,34 +1,27 @@
-// components/HamburgerNav.jsx
 "use client";
 
-import React, { useState, useEffect, useRef, useContext } from "react";
+import { SavedItemsContext } from "@/context/SavedItems";
+import { useContext, useEffect, useRef, useState } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import Badge from "@mui/material/Badge";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import {
-  RegisterLink,
-  LoginLink,
-  LogoutLink,
-} from "@kinde-oss/kinde-auth-nextjs/components";
-import Image from "next/image";
-import SaveIcon from '@mui/icons-material/Save';
+import { LoginLink, LogoutLink, RegisterLink } from "@kinde-oss/kinde-auth-nextjs";
+import { Button } from "./ui/button";
 import Link from "next/link";
-import Badge from '@mui/material/Badge';
-import { Button } from "@/components/ui/button";
-import { SavedItemsContext } from "@/context/SavedItems";  // Import the context
+import Image from "next/image";
 
-const HamburgerNav = ({ user, isUserAuthenticated }) => {
+export default function HamburgerNav({ user, isUserAuthenticated }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Use savedItems from the context
   const { savedItems } = useContext(SavedItemsContext);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = () => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setOpen(false);
       }
@@ -42,17 +35,6 @@ const HamburgerNav = ({ user, isUserAuthenticated }) => {
 
   const { id, picture, given_name } = user || {};
 
-  /**
-   * Helper function to check if an item is saved (in local storage)
-   * @param {string} itemId - The ID of the item to check
-   * @returns {boolean} - True if the item is saved, else false
-   */
-  const isSaved = (itemId) => savedItems.some((item) => item._id === itemId);
-
-  /**
-   * Helper function to calculate the total quantity of items in the cart
-   * @returns {number} - Total quantity of all items
-   */
   const getTotalQuantity = () => {
     return savedItems.reduce((total, item) => total + item.quantity, 0);
   };
@@ -60,13 +42,14 @@ const HamburgerNav = ({ user, isUserAuthenticated }) => {
   return (
     <>
       <div className="p-3 cursor-pointer">
-        <MenuIcon onClick={handleOpen} className="h-8 w-8 hover:text-green-200" />
+        <MenuIcon
+          onClick={handleOpen}
+          className="h-8 w-8 hover:text-green-200"
+        />
       </div>
       <div
         ref={menuRef}
-        className={`fixed top-0 right-0 h-full md:w-[35%] w-full bg-black transform ${
-          open ? "translate-x-0" : "translate-x-full"
-        } transition-transform duration-300 ease-in-out z-40`}
+        className={`fixed top-0 right-0 h-full md:w-[35%] w-full bg-black transform ${open ? "translate-x-0" : "translate-x-full"} transition-transform duration-300 ease-in-out z-40`}
       >
         <div className="flex items-center justify-end p-5 font-bold">
           <CloseIcon
@@ -109,7 +92,7 @@ const HamburgerNav = ({ user, isUserAuthenticated }) => {
                   </h2>
                 </li>
                 <li className="relative p-5">
-                  <Link href='/cart' onClick={handleClose}>
+                  <Link href="/cart" onClick={handleClose}>
                     {/* Display total quantity in badge */}
                     <Badge badgeContent={getTotalQuantity()} color="secondary">
                       <ShoppingCartIcon className="dark:text-white text-[5vmin] hover:text-green-400 hover:text-foreground" />
@@ -119,7 +102,7 @@ const HamburgerNav = ({ user, isUserAuthenticated }) => {
                 <li className="p-5">
                   <LogoutLink onClick={handleClose}>
                     <Button variant="destructive">
-                      <h3 className="dark:text-white">Logout</h3> 
+                      <h3 className="dark:text-white">Logout</h3>
                     </Button>
                   </LogoutLink>
                 </li>
@@ -130,6 +113,4 @@ const HamburgerNav = ({ user, isUserAuthenticated }) => {
       </div>
     </>
   );
-};
-
-export default HamburgerNav;
+}
