@@ -1,0 +1,76 @@
+name: Deploy Ecomic App (Next.js + PM2)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    name: Build & Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Setup Node.js 20 (required for Next.js 16)
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3) Install deps & build in CI
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js app
+        run: npm run build
+
+      # 4) Setup SSH to access VPS
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      # 5) Ensure VPS app directory exists
+      - name: Ensure app directory exists on VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p ${{ secrets.VPS_APP_DIR }}"
+
+      # 6) Rsync project (exclude .env so we don't overwrite server env)
+      - name: Upload project to VPS (rsync)
+        run: |
+          rsync -az --delete \
+            --exclude ".env" \
+            -e "ssh -i ~/.ssh/id_ed25519" \
+            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}
+
+      # 7) Install deps, write env, build, restart PM2
+      - name: Install & Restart PM2 on VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+
+            cd ${{ secrets.VPS_APP_DIR }}
+
+            # Write env vars from GitHub APP_ENV secret
+            cat > .env << 'ENV_EOF'
+${{ secrets.APP_ENV }}
+ENV_EOF
+
+            # Install dependencies
+            npm ci
+
+            # Build Next.js app
+            npm run build
+
+            # Restart PM2 apps or start if not running
+            pm2 restart ${{ secrets.PM2_APP_NAME }} || \
+            pm2 start npm --name "${{ secrets.PM2_APP_NAME }}" --cwd "$PWD" -- start
+
+            pm2 save
+          EOF
