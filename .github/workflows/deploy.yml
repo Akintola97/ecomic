@@ -6,33 +6,61 @@ on:
 
 jobs:
   deploy:
-    name: Build & Deploy to VPS
+    name: Build & Deploy
     runs-on: ubuntu-latest
 
-    # Run npm commands inside ./e-commerce (your real app folder)
-    defaults:
-      run:
-        working-directory: ./e-commerce
-
     steps:
-      # 1) Checkout repo
+      # ------------------------------
+      # 1. Checkout repo
+      # ------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2) Setup Node.js 20 (required for modern Next.js)
-      - name: Setup Node.js 20
+      # ------------------------------
+      # 2. Set default working dir for all commands
+      # ------------------------------
+      - name: Set working directory
+        run: echo "WORKING DIRECTORY = ./e-commerce"
+      defaults:
+        run:
+          working-directory: ./e-commerce
+
+      # ------------------------------
+      # 3. Setup Node.js 20
+      # ------------------------------
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3) Install deps & build in CI
+      # ------------------------------
+      # 4. Create .env from APP_ENV
+      # ------------------------------
+      - name: Create .env from APP_ENV
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          printf '%s\n' "$APP_ENV" > .env
+
+      # ------------------------------
+      # 5. Install deps & build
+      # ------------------------------
       - name: Install dependencies
         run: npm ci
 
       - name: Build Next.js app
-        run: npm run build
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          set -o allexport
+          source .env
+          set +o allexport
 
-      # 4) Setup SSH for VPS connection
+          npm run build
+
+      # ------------------------------
+      # 6. Setup SSH
+      # ------------------------------
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -40,21 +68,27 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      # 5) Ensure VPS app directory exists
-      - name: Ensure app directory exists on VPS
+      # ------------------------------
+      # 7. Ensure VPS app dir exists
+      # ------------------------------
+      - name: Ensure app dir exists on VPS
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "mkdir -p ${{ secrets.VPS_APP_DIR }}"
 
-      # 6) Upload project (from local ./e-commerce → VPS)
-      - name: Upload project to VPS (rsync)
+      # ------------------------------
+      # 8. Upload project to VPS
+      # ------------------------------
+      - name: Upload with rsync
         run: |
           rsync -az --delete \
             --exclude ".env" \
             -e "ssh -i ~/.ssh/id_ed25519" \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}
 
-      # 7) Install deps, write env, build, restart PM2
+      # ------------------------------
+      # 9. Install + Write .env + Build + Restart PM2
+      # ------------------------------
       - name: Install & Restart PM2 on VPS
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
@@ -62,18 +96,14 @@ jobs:
 
             cd ${{ secrets.VPS_APP_DIR }}
 
-            # Write .env values from GitHub secret
+            # Write .env from secret
             printf '%s\n' "${{ secrets.APP_ENV }}" > .env
 
-            # Install dependencies
             npm ci
-
-            # Build Next.js on VPS
             npm run build
 
-            # Restart PM2 app or start if first deployment
             pm2 restart ${{ secrets.PM2_APP_NAME }} || \
-            pm2 start npm --name "${{ secrets.PM2_APP_NAME }}" --cwd "$PWD" -- start
+            pm2 start npm --name "${{ secrets.PM2_APP_NAME }}" -- start
 
             pm2 save
           EOF
