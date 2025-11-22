@@ -9,48 +9,35 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
 
+    # All `run:` steps will by default execute in ./e-commerce
+    defaults:
+      run:
+        working-directory: ./e-commerce
+
     steps:
-      # ------------------------------
-      # 1. Checkout repo
-      # ------------------------------
+      # 1) Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ------------------------------
-      # 2. Set default working dir for all commands
-      # ------------------------------
-      - name: Set working directory
-        run: echo "WORKING DIRECTORY = ./e-commerce"
-      defaults:
-        run:
-          working-directory: ./e-commerce
-
-      # ------------------------------
-      # 3. Setup Node.js 20
-      # ------------------------------
-      - name: Setup Node 20
+      # 2) Setup Node.js 20
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # ------------------------------
-      # 4. Create .env from APP_ENV
-      # ------------------------------
+      # 3) Create .env from APP_ENV (for the CI build)
       - name: Create .env from APP_ENV
         env:
           APP_ENV: ${{ secrets.APP_ENV }}
         run: |
           printf '%s\n' "$APP_ENV" > .env
 
-      # ------------------------------
-      # 5. Install deps & build
-      # ------------------------------
+      # 4) Install dependencies (in ./e-commerce)
       - name: Install dependencies
         run: npm ci
 
+      # 5) Build Next.js app (load env first)
       - name: Build Next.js app
-        env:
-          APP_ENV: ${{ secrets.APP_ENV }}
         run: |
           set -o allexport
           source .env
@@ -58,9 +45,7 @@ jobs:
 
           npm run build
 
-      # ------------------------------
-      # 6. Setup SSH
-      # ------------------------------
+      # 6) Setup SSH key for VPS access
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -68,42 +53,49 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      # ------------------------------
-      # 7. Ensure VPS app dir exists
-      # ------------------------------
-      - name: Ensure app dir exists on VPS
+      # 7) Ensure the app directory exists on the VPS
+      - name: Ensure app directory exists on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p ${{ secrets.VPS_APP_DIR }}"
+          ssh -i ~/.ssh/id_ed25519 "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR'"
 
-      # ------------------------------
-      # 8. Upload project to VPS
-      # ------------------------------
-      - name: Upload with rsync
+      # 8) Upload built project to VPS using rsync
+      - name: Upload project to VPS (rsync)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
         run: |
           rsync -az --delete \
             --exclude ".env" \
             -e "ssh -i ~/.ssh/id_ed25519" \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_APP_DIR }}
+            ./ "$VPS_USER@$VPS_HOST:$VPS_APP_DIR"
 
-      # ------------------------------
-      # 9. Install + Write .env + Build + Restart PM2
-      # ------------------------------
+      # 9) On VPS: write .env, install deps, build, restart PM2
       - name: Install & Restart PM2 on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          PM2_APP_NAME: ${{ secrets.PM2_APP_NAME }}
+          APP_ENV: ${{ secrets.APP_ENV }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_ed25519 "$VPS_USER@$VPS_HOST" "
             set -e
+            cd '$VPS_APP_DIR'
 
-            cd ${{ secrets.VPS_APP_DIR }}
+            # Write .env from APP_ENV secret
+            printf '%s\n' \"$APP_ENV\" > .env
 
-            # Write .env from secret
-            printf '%s\n' "${{ secrets.APP_ENV }}" > .env
-
+            # Install dependencies and rebuild on the VPS
             npm ci
             npm run build
 
-            pm2 restart ${{ secrets.PM2_APP_NAME }} || \
-            pm2 start npm --name "${{ secrets.PM2_APP_NAME }}" -- start
+            # Restart (or start) PM2 app
+            pm2 restart '$PM2_APP_NAME' || pm2 start npm --name '$PM2_APP_NAME' -- start
 
             pm2 save
-          EOF
+          "
